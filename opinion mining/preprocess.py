@@ -59,5 +59,3 @@ def getVocabulary():
     f2.close()
     f3.close()
     domain_preprocess(r'E:\python_workplace\Opinion Mining (LML)\Data\Nokia 6610\Nokia6610.txt',r'E:\eclipse_workplace\AMC\Data\Input\100Reviews\Electronics')
-
-pass
