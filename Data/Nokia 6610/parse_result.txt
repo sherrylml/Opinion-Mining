@@ -882,8 +882,8 @@ result:
 7	phone	_	NN	NN	_	5	pobj	_	_
 8	has	_	VBZ	VBZ	_	0	root	_	_
 9	good	_	JJ	JJ	_	11	amod	_	_
-10	sound	_	JJ	JJ	_	11	amod	_	_
-11	volume	_	NN	NN	_	8	dobj	_	_
+10	sound	_	NN	NN	_	8	dobj	_	_
+11	volume	_	NN	NN	_	8	nn	_	_
 12	but	_	CC	CC	_	8	cc	_	_
 13	it	_	PRP	PRP	_	14	nsubj	_	_
 14	hurts	_	VBZ	VBZ	_	8	conj	_	_
@@ -903,7 +903,7 @@ result:
 #prep_with(comes-4, phone-7)
 #root(ROOT-0, has-8)
 #amod(volume-11, good-9)
-#amod(volume-11, sound-10)
+#nn(volume-11, sound-10)
 #dobj(has-8, volume-11)
 #nsubj(hurts-14, it-13)
 #conj_but(has-8, hurts-14)

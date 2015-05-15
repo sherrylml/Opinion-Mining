@@ -44,7 +44,8 @@ def domain_preprocess(domaFileName, STORE_DOMA_DIR_NAME):
         words += doc_line.strip().split(',')
     # print(len(words))
     vocab = list(set(words))
-    vocab.remove('')
+    if vocab.__contains__(''):
+        vocab.remove('')
     # print(vocab)
     vocabFileName = join(domaDir, str(domaFilePre) + '.vocab')
     vocabFile = open(vocabFileName, 'w', encoding='utf-8')
