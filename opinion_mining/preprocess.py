@@ -33,29 +33,37 @@ lemitaion = nltk.WordNetLemmatizer()
 f.close()
 ignorechars = ''',:'.;!()#'''
 
+def lemitate(w):
+    w = w.replace(ignorechars, "")
+    w = lemitaion.lemmatize(w)
+    w = lemitaion.lemmatize(w, pos='v')
+    return w
+
 def getVocabulary():
-    from hai2012.AMC_preprocess import domain_preprocess
+    from .AMC_preprocess import domain_preprocess
     f1 = open(r'E:\python_workplace\Opinion Mining (LML)\Data\Nokia 6610\Nokia6610.txt', 'w')
     f2 = open(r'E:\python_workplace\Opinion Mining (LML)\Data\Nokia 6610\noun_prase.txt', 'w')
     f3 = open(r'E:\python_workplace\Opinion Mining (LML)\Data\Nokia 6610\parse_result.txt', encoding='utf-8')
-    C = []
+    CF = []
     NP = []
     for line in f3:
         line = line.replace("*'", "")
         if line.startswith("result:"):
-            C = []
             NP = []
         elif line.startswith("#"):
             if line.startswith("#nn"):
                 line = re.match(r'.*\((.*)-\d*\'*,\s(.*)-\d*\'*\)$', line).groups()
-                word = ' '.join([line[1],line[0]])
+                word = ' '.join([lemitate(line[1]),lemitate(line[0])])
                 NP.append(word)
                 f2.write(word + ',')
-        else:
-            pass
+            elif line.startswith("#nsubj") or line.startswith("#nsubj")or line.startswith("#pobj") or line.startswith("#dobj"):
+                word = re.match(r'.*\(.*-\d*\'*,\s(.*)-\d*\'*\)$', line)
+                CF.append(lemitate(word))
         f2.write('\n')
-
     f1.close()
     f2.close()
     f3.close()
     domain_preprocess(r'E:\python_workplace\Opinion Mining (LML)\Data\Nokia 6610\Nokia6610.txt',r'E:\eclipse_workplace\AMC\Data\Input\100Reviews\Electronics')
+    print(CF)
+
+getVocabulary()
