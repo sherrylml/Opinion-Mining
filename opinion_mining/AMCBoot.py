@@ -20,19 +20,21 @@ __mtime__ = '2015/5/9'
                   ┗┻┛  ┗┻┛
 """
 from __future__ import division
-from numpy.ma import sort
+import math
+from numpy.ma import sort,log
 import re
 import numpy
 from scipy import spatial
 from numpy import savetxt, loadtxt
 import nltk
-from opinion_mining.AMC_preprocess import domain_preprocess
+# from opinion_mining.AMC_preprocess import domain_preprocess
+from Opinion_Mining.opinion_mining.AMC_preprocess import domain_preprocess
 
-f = open(r'E:\python_workplace\Opinion Mining (LML)\Data\English_stopwords.txt', encoding='utf-8')
+f = open(r'E:\python_workplace\Opinion_Mining\Data\English_stopwords.txt', encoding='utf-8')
 stopwords = set(line.strip() for line in f.readlines())  # 读入停用词
 lemitaion = nltk.WordNetLemmatizer()
 f.close()
-ignorechars = ''',:'.;!()#'''
+ignorechars = ''',:'.;!()#-./1234567890'''
 
 def pre_proc(C):
     C = [w.replace(ignorechars, "") for w in C ]
@@ -59,17 +61,21 @@ def lemitate(w):
     return w
 
 def getVocabulary():
-    f1 = open(r'E:\python_workplace\Opinion Mining (LML)\Data\Nokia 6610\Nokia6610.txt', 'w')
-    f2 = open(r'E:\python_workplace\Opinion Mining (LML)\Data\Nokia 6610\noun_phrase.txt', 'w')
-    f3 = open(r'E:\python_workplace\Opinion Mining (LML)\Data\Nokia 6610\parse_result.txt', encoding='utf-8')
+    f1 = open(r'E:\python_workplace\Opinion_Mining\Data\Nokia 6610\Nokia6610.txt', 'w')
+    f2 = open(r'E:\python_workplace\Opinion_Mining\Data\Nokia 6610\noun_prase.txt', 'w')
+    f3 = open(r'E:\python_workplace\Opinion_Mining\Data\Nokia 6610\parse_result.txt', encoding='utf-8')
     CF = []
     NP = []
+    flag = 1
+    w1 = ''
+    w2 = ''
     for line in f3:
         line = line.replace("*'", "")
         if line.startswith("result:"):
             NP = []
-            CF0 = []
+            temp = []
             f2.write('\n')   #note: remove the first one \n
+            f1.write('\n')
         elif line.startswith("#"):
             if line.startswith("#nn"):
                 line = re.match(r'.*\((.*)-\d*\'*,\s(.*)-\d*\'*\)$', line).groups()
@@ -77,13 +83,27 @@ def getVocabulary():
                 word = ' '.join([line[1],line[0]])
                 NP.append(word)
                 f2.write(word + ',')
-            elif line.startswith("#nsubj") or line.startswith("#pobj") or line.startswith("#dobj")or line.startswith("#det"):
-                pass
+        else:
+            if line.split("\t")[7] == 'nn':
+                w1 = line.split("\t")[1]
+                flag = 0
+            else:
+                if flag == 0:
+                    w2 = line.split("\t")[1]
+                    w = ' '.join([w1,w2])
+                    flag = 1
+                else:
+                    w = line.split("\t")[1]
+                w = w.replace(ignorechars, "")
+                if len(w)>2 and w not in stopwords:
+                    w = lemitate(w)
+                if len(w)>2 and w not in stopwords:
+                    f1.write(w + ',')
 
     f1.close()
     f2.close()
     f3.close()
-    domain_preprocess(r'E:\python_workplace\Opinion Mining (LML)\Data\Nokia 6610\Nokia6610.txt',r'E:\eclipse_workplace\AMC\Data\Input\100Reviews\Electronics')
+    domain_preprocess(r'E:\python_workplace\Opinion_Mining\Data\Nokia 6610\Nokia6610.txt',r'E:\eclipse_workplace\AMC\Data\Input\100Reviews\Electronics')
 
 def get_CF():
     CF = []
@@ -93,8 +113,8 @@ def get_CF():
     NN = []
     temp = []
     root = ''
-    f = open(r'E:\python_workplace\Opinion Mining (LML)\Data\Nokia 6610\parse_result.txt', encoding='utf-8')
-    p = open(r'E:\python_workplace\Opinion Mining (LML)\Data\Nokia 6610\noun_prase.txt',encoding='utf-8')
+    f = open(r'E:\python_workplace\Opinion_Mining\Data\Nokia 6610\parse_result.txt', encoding='utf-8')
+    p = open(r'E:\python_workplace\Opinion_Mining\Data\Nokia 6610\noun_phrase.txt',encoding='utf-8')
     NP = [line.strip().split(',') for line in p.readlines()]
     p.close()
     index = 0
@@ -106,31 +126,14 @@ def get_CF():
             N = NP[index]
             index += 1
         elif line.startswith("#"):
-        #     if re.match(r'.*\((.*)-\d*\'*,\s(.*)-\d*\'*\)$', line):
-        #         line = re.match(r'.*\((.*)-\d*\'*,\s(.*)-\d*\'*\)$', line).groups()
-        #     else:
-        #         print(line)
-        #     if line[0] == root:
-        #         w = line[1]
-        #         w = w.replace(ignorechars, "")
-        #         # if w in N:
-        #         flag = 0
-        #         for token in N:
-        #             if token.__contains__(w) and token not in temp:
-        #                 temp.append(token)
-        #                 CF.append(token)
-        #                 flag = 0
-        #             else:
-        #                 flag = 1
-        #         if flag and w in NN:
-        #             CF.append(w)
-        # elif line.split("\t")[7]=='root':
-        #     root = line.split("\t")[1]
-
-            if line.startswith("#nsubj") or line.startswith("#pobj") or line.startswith("#dobj"):
+            if re.match(r'.*\((.*)-\d*\'*,\s(.*)-\d*\'*\)$', line):
                 line = re.match(r'.*\((.*)-\d*\'*,\s(.*)-\d*\'*\)$', line).groups()
+            else:
+                print(line)
+            if line[0] == root:
                 w = line[1]
                 w = w.replace(ignorechars, "")
+                # if w in N:
                 flag = 0
                 for token in N:
                     if token.__contains__(w) and token not in temp:
@@ -141,9 +144,29 @@ def get_CF():
                         flag = 1
                 if flag and w in NN:
                     CF.append(w)
-            # elif line.startswith("#det"):
-            #     line = re.match(r'.*\((.*)-\d*\'*,\s(.*)-\d*\'*\)$', line).groups()
-            #     word = line[0]
+        elif line.split("\t")[7]=='root':
+            root = line.split("\t")[1]
+
+        #     w = ''
+        #     if line.startswith("#nsubj") or line.startswith("#pobj") or line.startswith("#dobj"):
+        #         line = re.match(r'.*\((.*)-\d*\'*,\s(.*)-\d*\'*\)$', line).groups()
+        #         w = line[1]
+        #     elif line.startswith("#det"):
+        #         line = re.match(r'.*\((.*)-\d*\'*,\s(.*)-\d*\'*\)$', line).groups()
+        #         w = line[0]
+        #     w = w.replace(ignorechars, "")
+        #     flag = 0
+        #     for token in N:
+        #         if token.__contains__(w) and token not in temp:
+        #             temp.append(token)
+        #             CF.append(token)
+        #             flag = 0
+        #         else:
+        #             flag = 1
+        #     if flag and w in NN and w not in temp:
+        #         temp.append(w)
+        #         CF.append(w)
+
         elif line.__contains__("NN"):
             word = line.split("\t")[1]
             NN.append(word)
@@ -151,6 +174,7 @@ def get_CF():
         elif line.__contains__("JJ") or line.__contains__("VB") :
             word = line.split("\t")[1]
             CO.append(word)
+
     # f = open(r'E:\python_workplace\hai2012\corpus\truefeature.txt', encoding='utf-8')
     # TF = []
     # for line in f.readlines():
@@ -164,13 +188,13 @@ def get_CF():
     # CF = TF
     # CF = CF_N
 
-    # addition = ['at&t customer service', 'infrared', 'infrared', 'sprint plan', 'sprint customer service', 'sturdy', 'ringtone', 'background', 'screensaver', 'memory', 'menu options', 't-mobile reception', 't-zone', 't-zone', 't-mobile', 'customer rep', 'call', 'phone performance', 'look', 't-mobile', 'voice dialing', 'message', 'fm', 'operate', 'button', 'key', 'volume', 't-mobile', 'high speed internet', 'ringing tone', 'ring tone', 'game', 'button', 'size', 'size', 'key', 'vibrate setting', 'vibrate setting', 'voice dialing', 'voice dialing', 'picture', 'ringtone', 'key lock', 'ring tone', 'fm radio', 'weight', 'wallpaper', 'tune', 'size', 'size', 'key', 'pc cable', 'loud phone', 'size', 'application', 'pc suite', 'size', 'game', 'ringtone', 'ergonomics', 'size', 'size', 'volume', 'volume', 'size', 'weight', 'ringtone', 'volume', 'weight', 'pc sync', 'tone', 'wallpaper', 'application', 'message', 'picture sharing', 'mms', 'size', 'voice dialing', 'key', 'application', 'size', 'speakerphone', 'look', 'default ringtone', 't-mobile', 'ringtone', 'speakerphone', 'size', 'look', 'weight', 'browsing', 'game', 'battery life', 'voice dialing', 'command', 'button', 'key', 't-mobile', 't-mobile', 'size', 'earpiece', 'voice dialing', 'ringtone', 'gprs', 't-zone', 't-zone', 't-mobile service', 'rate plan', 'weight', 'signal']
-    #
-    # CF += addition
+    addition = ['at&t customer service', 'infrared', 'infrared', 'sprint plan', 'sprint customer service', 'sturdy', 'ringtone', 'background', 'screensaver', 'memory', 'menu options', 't-mobile reception', 't-zone', 't-zone', 't-mobile', 'customer rep', 'call', 'phone performance', 'look', 't-mobile', 'voice dialing', 'message', 'fm', 'operate', 'button', 'key', 'volume', 't-mobile', 'high speed internet', 'ringing tone', 'ring tone', 'game', 'button', 'size', 'size', 'key', 'vibrate setting', 'vibrate setting', 'voice dialing', 'voice dialing', 'picture', 'ringtone', 'key lock', 'ring tone', 'fm radio', 'weight', 'wallpaper', 'tune', 'size', 'size', 'key', 'pc cable', 'loud phone', 'size', 'application', 'pc suite', 'size', 'game', 'ringtone', 'ergonomics', 'size', 'size', 'volume', 'volume', 'size', 'weight', 'ringtone', 'volume', 'weight', 'pc sync', 'tone', 'wallpaper', 'application', 'message', 'picture sharing', 'mms', 'size', 'voice dialing', 'key', 'application', 'size', 'speakerphone', 'look', 'default ringtone', 't-mobile', 'ringtone', 'speakerphone', 'size', 'look', 'weight', 'browsing', 'game', 'battery life', 'voice dialing', 'command', 'button', 'key', 't-mobile', 't-mobile', 'size', 'earpiece', 'voice dialing', 'ringtone', 'gprs', 't-zone', 't-zone', 't-mobile service', 'rate plan', 'weight', 'signal']
+
+    CF += addition
     return pre_proc(CO),pre_proc(CF)
 
 def seed_mustlinks():
-    f = open(r'E:\python_workplace\hai2012\corpus\corpus_NP\corpus_NP.knowl_mustlinks', encoding='utf-8')
+    f = open(r'E:\python_workplace\Opinion_Mining\Data\Nokia 6610\Nokia6610.knowl_mustlinks', encoding='utf-8')
     links = []
     for line in f:
         words = re.split("\s",line.strip())
@@ -193,8 +217,10 @@ def seed_mustlinks():
 
 def get_pairwise():
     ntopic = 100
-    f = open(r'E:\python_workplace\hai2012\corpus\corpus_NP\corpus_NP.twords', encoding='utf-8')
-    tword_array = loadtxt(r'E:\python_workplace\hai2012\corpus\corpus_NP\corpus_NP.twdist')
+    # f = open(r'E:\python_workplace\hai2012\corpus\corpus_NP\corpus_NP.twords', encoding='utf-8')
+    # tword_array = loadtxt(r'E:\python_workplace\hai2012\corpus\corpus_NP\corpus_NP.twdist')
+    f = open(r'E:\python_workplace\Opinion_Mining\Data\Nokia 6610\Nokia6610.twords', encoding='utf-8')
+    tword_array = loadtxt(r'E:\python_workplace\Opinion_Mining\Data\Nokia 6610\Nokia6610.twdist')
     tword_array = -sort(-tword_array,axis=1)
     tword_array = tword_array[:,0:100].transpose()
     wdict = {}
@@ -246,7 +272,12 @@ def A(x, y):
     return pairwise[i,j]
 
 def getCommonWords():
-    CommonWords = ['people','thing','year','hour','minute','time','motorola','samsung','s105','number','house','cell','night']
+    '''
+    调用DomainRelevace.py计算领域相关性低的词为common words
+    outdomain的数据集太大，结果先手写设定
+    :return:
+    '''
+    CommonWords = ['people','thing','year','hour','minute','time','motorola','samsung','s105','number','house','cell','night','number']
     return  CommonWords
 
 def main():
@@ -260,7 +291,8 @@ def main():
         print("##### CF，CO #####")
         print(CF)
         print(CO)
-        S = seed_mustlinks()
+        # S = seed_mustlinks()
+        S = ['phone','headphone']
         # print("##### S #####")
         # print(S)
         F = []
@@ -301,12 +333,12 @@ def main():
         print (F)
         print (O)
 
-        f1 = open(r'E:\python_workplace\hai2012\corpus\feature_amc.txt', 'w')
+        f1 = open(r'E:\python_workplace\Opinion_Mining\Data\Nokia 6610\feature_amc.txt', 'w')
         for feature in F:
             f1.writelines(feature + '\n')
         f1.close()
 
-        f = open(r'E:\python_workplace\hai2012\corpus\truefeature.txt', encoding='utf-8')
+        f = open(r'E:\python_workplace\Opinion_Mining\Data\Nokia 6610\true_feature.txt', encoding='utf-8')
         TF = []
         for line in f.readlines():
             line.replace(', ',',')
@@ -344,6 +376,42 @@ def main():
         f=(2*precision*recall)/(precision+recall)
         print ('F=%f' % f)
 
+        # opinion word's extraction result
+        print("opinion word:")
+        p = open(r'E:\python_workplace\Opinion_Mining\Data\Nokia 6610\true_opinion.txt', encoding='utf-8')
+        TO = []
+        for line in p.readlines():
+            line.replace(', ',',')
+            if ',' in line:
+                tmp = line.split(',')
+                for t in tmp:
+                    TO.append(t.strip())
+            else:
+                TO.append(line.strip())
+
+        print (len(TO))
+        print (len(O))
+        TP = 0
+        FP = 0
+        test = []
+        for co in O:
+            if co in TO:
+                TP += 1
+                test.append(co)
+                TO.remove(co)
+            else:
+                FP += 1
+        FN = len(TO)
+        if(TP):
+            precision = TP/(TP+FP)
+            recall = TP/(TP + FN)
+            print (TP,FP,FN)
+            print ('p=%f'% precision)
+            print ('r=%f'% recall)
+            f=(2*precision*recall)/(precision+recall)
+            print ('F=%f' % f)
+
 if __name__ == "__main__":
     # getVocabulary()
+    # domain_preprocess(r'E:\python_workplace\Opinion Mining (LML)\Data\Nokia 6610\Nokia6610.txt',r'E:\eclipse_workplace\AMC\Data\Input\100Reviews\Electronics')
     main()
